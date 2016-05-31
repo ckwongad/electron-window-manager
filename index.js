@@ -662,7 +662,12 @@
             return this.layouts[name];
         }
     };
-
+    
+    /**
+     * Simply a fake callback to replace callbacks that are supposed to be released
+     * */
+    var fakeCallback = function() {};
+    
     /**
      * The module interface
      * */
@@ -981,7 +986,18 @@
              * */
             'on': function(event, callback){
                 windowManager.eventEmitter.addListener(event, function(event){
-                    callback.call(null, event.data, event.target, event.emittedBy);
+                    //A dirty workaround. Otherwise, this will run into error when the window the callback belongs to has been closed or released.
+                    try {
+                        callback.call(null, event.data, event.target, event.emittedBy);
+                    } catch (ex) {
+                        console.log(JSON.stringify(ex))
+                        if ( ex.message.indexOf("Attempting to call a function in a renderer window that has been closed or released.") > -1 ) {
+                            console.log("To replace the following callback function with a fake one: \n" + callback)
+                            callback = fakeCallback  //This is a fake 
+                        }
+                        else
+                            throw ex;
+                    }
                 });
             },
 
